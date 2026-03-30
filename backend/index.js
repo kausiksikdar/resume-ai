@@ -8,8 +8,11 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
+  origin: [
+    'http://localhost:5173',
+    'https://resume-ai-azure-five.vercel.app'   // your actual Vercel URL
+  ],
+  credentials: true
 }));
 
 app.use(express.json());
