@@ -1,0 +1,35 @@
+const express = require('express');
+const app = express();
+require('dotenv').config();
+const main = require('./config/mongodb');
+const { redisClient } = require('./config/redis'); // ✅ destructure
+const { initQdrant } = require('./services/qdrantService');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
+
+app.use(express.json());
+app.use(cookieParser());
+app.use('/auth', require('./routes/authRoutes'));
+app.use('/resume', require('./routes/resumeRoutes'));
+app.use('/ai', require('./routes/aiRoutes'));
+app.use('/jobs', require('./routes/jobRoutes'));
+
+const InitalizeConnection = async () => {
+  try {
+    await Promise.all([main(), initQdrant()]); // ✅ removed redisClient.connect()
+    console.log('DB Connected');
+
+    app.listen(process.env.PORT, () => {
+      console.log('Server listening at port number: ' + process.env.PORT);
+    });
+  } catch (err) {
+    console.log('Error: ' + err);
+  }
+};
+
+InitalizeConnection();
