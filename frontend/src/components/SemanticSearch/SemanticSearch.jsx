@@ -4,13 +4,23 @@ import { motion } from 'framer-motion';
 import { semanticSearch, getUserResumes } from '../../services/api';
 import SearchResults from './SearchResults';
 import { SkeletonSearchResult } from '../Common/Skeleton';
+import { useGeneration } from '../../context/GenerationContext';
 import toast from 'react-hot-toast';
 
 const SemanticSearch = () => {
+  const { searchData, setSearchData, clearSearch } = useGeneration();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [resumeCount, setResumeCount] = useState(0);
+
+  // Restore from context on mount
+  useEffect(() => {
+    if (searchData) {
+      setQuery(searchData.query);
+      setResults(searchData.results);
+    }
+  }, [searchData]);
 
   useEffect(() => {
     checkResumeCount();
@@ -52,6 +62,8 @@ const SemanticSearch = () => {
       
       if (Array.isArray(data)) {
         setResults(data);
+        // Save to context (overwrites previous search)
+        setSearchData({ query, results: data });
         if (data.length === 0) {
           toast('No matching resumes found. Try a different query.', {
             icon: '🔍',

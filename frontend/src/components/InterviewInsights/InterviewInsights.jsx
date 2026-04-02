@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaLightbulb, FaSpinner, FaSearch, FaSave, FaDownload } from 'react-icons/fa';
 import { useNotifications } from '../../context/NotificationContext';
+import { useGeneration } from '../../context/GenerationContext';
 import { semanticSearch, generateInterviewInsights, saveInterview } from '../../services/api';
 import SearchResults from '../SemanticSearch/SearchResults';
 import { SkeletonSearchResult } from '../Common/Skeleton';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 
 const InterviewInsights = () => {
   const { showNotification } = useNotifications();
+  const { interviewData, setInterviewData, clearInterview } = useGeneration();
   const [jobDescription, setJobDescription] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedResume, setSelectedResume] = useState(null);
@@ -19,6 +21,12 @@ const InterviewInsights = () => {
   const [saved, setSaved] = useState(false);
   const [customName, setCustomName] = useState('');
   const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    if (interviewData) {
+      setQuestions(interviewData);
+    }
+  }, [interviewData]);
 
   const handleSearch = async () => {
     if (!jobDescription.trim()) {
@@ -60,7 +68,9 @@ const InterviewInsights = () => {
     setQuestions([]);
     try {
       const result = await generateInterviewInsights(selectedResume.id, jobDescription);
-      setQuestions(result.questions || []);
+      const questionsArray = result.questions || [];
+      setQuestions(questionsArray);
+      setInterviewData(questionsArray);
       toast.success('Interview questions generated successfully!');
     } catch (error) {
       console.error('Generation error:', error);
@@ -90,6 +100,8 @@ const InterviewInsights = () => {
         description: description.trim()
       });
       setSaved(true);
+      clearInterview();
+      setQuestions([]);
       showNotification('Interview questions saved successfully!', 'success');
       toast.success('Questions saved!');
     } catch (error) {
@@ -156,7 +168,6 @@ const InterviewInsights = () => {
         </div>
       )}
 
-      {/* Actual search results */}
       {searchResults.length > 0 && (
         <SearchResults
           results={searchResults}

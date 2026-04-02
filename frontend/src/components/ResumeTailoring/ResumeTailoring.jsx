@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaMagic, FaSpinner, FaSearch, FaSave, FaDownload, FaFilePdf } from 'react-icons/fa';
 import { useNotifications } from '../../context/NotificationContext';
+import { useGeneration } from '../../context/GenerationContext';
 import { semanticSearch, generateTailoredResume, saveTailoredResume } from '../../services/api';
 import SearchResults from '../SemanticSearch/SearchResults';
 import { SkeletonSearchResult } from '../Common/Skeleton';
@@ -10,6 +11,7 @@ import { exportToPDF } from '../../utils/exportToPDF';
 
 const ResumeTailoring = () => {
   const { showNotification } = useNotifications();
+  const { tailoredData, setTailoredData, clearTailored } = useGeneration();
   const [jobDescription, setJobDescription] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedResume, setSelectedResume] = useState(null);
@@ -21,6 +23,14 @@ const ResumeTailoring = () => {
   const [saved, setSaved] = useState(false);
   const [customName, setCustomName] = useState('');
   const [description, setDescription] = useState('');
+
+  // Restore from context on mount
+  useEffect(() => {
+    if (tailoredData) {
+      setTailoredContent(tailoredData.content);
+      setFullAiResult(tailoredData.fullResult);
+    }
+  }, [tailoredData]);
 
   useEffect(() => {
     console.log('Tailored content state changed:', tailoredContent);
@@ -68,6 +78,8 @@ const ResumeTailoring = () => {
       setFullAiResult(result);
       const tailoredText = result.tailoredResume || result;
       setTailoredContent(tailoredText);
+      // Save to context
+      setTailoredData({ content: tailoredText, fullResult: result });
       toast.success('Tailored resume generated successfully!');
     } catch (error) {
       console.error('Generation error:', error);
@@ -102,6 +114,10 @@ const ResumeTailoring = () => {
         description: description.trim()
       });
       setSaved(true);
+      // Clear context after successful save
+      clearTailored();
+      setTailoredContent(null);
+      setFullAiResult(null);
       showNotification('Resume tailored and saved successfully!', 'success');
       toast.success('Resume saved successfully!');
     } catch (error) {
@@ -135,6 +151,7 @@ const ResumeTailoring = () => {
 
   return (
     <div className="space-y-6">
+      {/* Job description card (unchanged) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -168,7 +185,7 @@ const ResumeTailoring = () => {
         </div>
       </motion.div>
 
-      {/* Show skeleton while searching */}
+      {/* Skeleton while searching */}
       {searching && searchResults.length === 0 && (
         <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Searching for matching resumes...</h3>
@@ -180,6 +197,7 @@ const ResumeTailoring = () => {
         </div>
       )}
 
+      {/* Search results */}
       {searchResults.length > 0 && (
         <SearchResults
           results={searchResults}
@@ -188,6 +206,7 @@ const ResumeTailoring = () => {
         />
       )}
 
+      {/* Selected resume card */}
       {selectedResume && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -212,7 +231,7 @@ const ResumeTailoring = () => {
         </motion.div>
       )}
 
-      {/* Show skeleton while generating */}
+      {/* Skeleton while generating */}
       {loading && !tailoredContent && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -232,6 +251,7 @@ const ResumeTailoring = () => {
         </motion.div>
       )}
 
+      {/* Generated tailored resume */}
       {tailoredContent && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

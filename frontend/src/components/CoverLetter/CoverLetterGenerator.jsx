@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaSpinner, FaSearch, FaSave, FaDownload } from 'react-icons/fa';
 import { useNotifications } from '../../context/NotificationContext';
+import { useGeneration } from '../../context/GenerationContext';
 import { semanticSearch, generateCoverLetter, saveCoverLetter } from '../../services/api';
 import SearchResults from '../SemanticSearch/SearchResults';
 import { SkeletonSearchResult } from '../Common/Skeleton';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 
 const CoverLetterGenerator = () => {
   const { showNotification } = useNotifications();
+  const { coverLetterData, setCoverLetterData, clearCoverLetter } = useGeneration();
   const [jobDescription, setJobDescription] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedResume, setSelectedResume] = useState(null);
@@ -19,6 +21,12 @@ const CoverLetterGenerator = () => {
   const [saved, setSaved] = useState(false);
   const [customName, setCustomName] = useState('');
   const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    if (coverLetterData) {
+      setCoverLetter(coverLetterData);
+    }
+  }, [coverLetterData]);
 
   const handleSearch = async () => {
     if (!jobDescription.trim()) {
@@ -61,6 +69,7 @@ const CoverLetterGenerator = () => {
       const result = await generateCoverLetter(selectedResume.id, jobDescription);
       const letterText = result.coverLetter || result;
       setCoverLetter(letterText);
+      setCoverLetterData(letterText);
       toast.success('Cover letter generated successfully!');
     } catch (error) {
       console.error('Generation error:', error);
@@ -90,6 +99,8 @@ const CoverLetterGenerator = () => {
         description: description.trim()
       });
       setSaved(true);
+      clearCoverLetter();
+      setCoverLetter(null);
       showNotification('Cover letter saved successfully!', 'success');
       toast.success('Cover letter saved!');
     } catch (error) {
@@ -146,7 +157,6 @@ const CoverLetterGenerator = () => {
         </div>
       )}
 
-      {/* Actual search results */}
       {searchResults.length > 0 && (
         <SearchResults
           results={searchResults}
