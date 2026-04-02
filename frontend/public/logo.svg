@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" /> <!-- indigo-600 -->
+      <stop offset="100%" stop-color="#9333EA" /> <!-- purple-600 -->
+    </linearGradient>
+    <linearGradient id="gradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8" /> <!-- indigo-400 -->
+      <stop offset="100%" stop-color="#C084FC" /> <!-- purple-400 -->
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="url(#grad)" />
+
+  <!-- Document (resume) -->
+  <rect x="55" y="50" width="70" height="90" rx="8" fill="white" opacity="0.95" />
+  <line x1="70" y1="65" x2="110" y2="65" stroke="#4F46E5" stroke-width="4" stroke-linecap="round" />
+  <line x1="70" y1="80" x2="110" y2="80" stroke="#A1A1AA" stroke-width="3" stroke-linecap="round" />
+  <line x1="70" y1="95" x2="105" y2="95" stroke="#A1A1AA" stroke-width="3" stroke-linecap="round" />
+  <line x1="70" y1="110" x2="100" y2="110" stroke="#A1A1AA" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Magnifying glass (search) -->
+  <circle cx="125" cy="125" r="18" fill="none" stroke="white" stroke-width="5" />
+  <line x1="138" y1="138" x2="148" y2="148" stroke="white" stroke-width="6" stroke-linecap="round" />
+
+  <!-- AI Sparkle -->
+  <path d="M 70 35 L 75 45 L 85 50 L 75 55 L 70 65 L 65 55 L 55 50 L 65 45 Z" fill="url(#gradLight)" opacity="0.9" />
+  <path d="M 135 35 L 138 42 L 145 45 L 138 48 L 135 55 L 132 48 L 125 45 L 132 42 Z" fill="url(#gradLight)" opacity="0.9" />
+</svg>
