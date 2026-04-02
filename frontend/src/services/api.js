@@ -71,23 +71,8 @@ export const uploadResume = async (file, onProgress) => {
 };
 
 export const semanticSearch = async (query, limit = 10) => {
-  try {
-    console.log('Sending search request:', { query, limit });
-    
-    const response = await api.post('/resume/search', { 
-      query: query,
-      limit: limit 
-    });
-    
-    console.log('Search response:', response.data);
-    return response.data;
-    
-  } catch (error) {
-    console.error('Search API error:', error.response?.data || error.message);
-    
-    // Return empty array on error
-    return [];
-  }
+  const response = await api.post('/resume/search', { query, limit });
+  return response.data;
 };
 
 export const getUserResumes = async () => {

@@ -8,13 +8,12 @@ import { useGeneration } from '../../context/GenerationContext';
 import toast from 'react-hot-toast';
 
 const SemanticSearch = () => {
-  const { searchData, setSearchData, clearSearch } = useGeneration();
+  const { searchData, setSearchData } = useGeneration();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [resumeCount, setResumeCount] = useState(0);
 
-  // Restore from context on mount
   useEffect(() => {
     if (searchData) {
       setQuery(searchData.query);
@@ -43,7 +42,8 @@ const SemanticSearch = () => {
   };
 
   const handleSearch = async () => {
-    if (!query.trim()) {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
       toast.error('Please enter a search query');
       return;
     }
@@ -56,14 +56,10 @@ const SemanticSearch = () => {
     setLoading(true);
     setResults([]);
     try {
-      console.log('Searching with query:', query);
-      const data = await semanticSearch(query, 10);
-      console.log('Search results received:', data);
-      
+      const data = await semanticSearch(trimmedQuery, 10);
       if (Array.isArray(data)) {
         setResults(data);
-        // Save to context (overwrites previous search)
-        setSearchData({ query, results: data });
+        setSearchData({ query: trimmedQuery, results: data });
         if (data.length === 0) {
           toast('No matching resumes found. Try a different query.', {
             icon: '🔍',
@@ -73,14 +69,33 @@ const SemanticSearch = () => {
           toast.success(`Found ${data.length} matching resumes`);
         }
       } else {
-        console.error('Expected array but got:', typeof data);
         setResults([]);
         toast.error('Invalid response format from server');
       }
     } catch (error) {
-      console.error('Search error details:', error);
+      console.error('Search error:', error);
       setResults([]);
-      toast.error('Failed to perform search');
+
+      // Handle different error types
+      if (error.response) {
+        const { status, data } = error.response;
+        if (status === 400 && data.errors) {
+          // Validation errors from express-validator
+          const firstError = data.errors[0]?.msg;
+          toast.error(firstError || 'Invalid search query');
+        } else if (status === 429) {
+          // Rate limit error
+          toast.error(data.message || 'Too many requests. Please slow down.');
+        } else if (data?.message) {
+          toast.error(data.message);
+        } else {
+          toast.error('Search failed. Please try again.');
+        }
+      } else if (error.request) {
+        toast.error('Cannot connect to server. Please check your network.');
+      } else {
+        toast.error('An unexpected error occurred.');
+      }
     } finally {
       setLoading(false);
     }
@@ -114,7 +129,7 @@ const SemanticSearch = () => {
           <FaSearch className="text-indigo-600 dark:text-indigo-400" />
           <span className="text-gray-800 dark:text-gray-200">Resume Search</span>
         </h2>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -129,23 +144,18 @@ const SemanticSearch = () => {
               placeholder="Example: Looking for a senior software engineer with 5+ years of Python experience, strong background in machine learning, and leadership skills..."
             />
           </div>
-          
+
           <button
             onClick={handleSearch}
             disabled={loading || resumeCount === 0}
             className="btn-primary w-full flex items-center justify-center gap-2"
           >
-            {loading ? (
-              <FaSpinner className="animate-spin" />
-            ) : (
-              <FaSearch />
-            )}
+            {loading ? <FaSpinner className="animate-spin" /> : <FaSearch />}
             {loading ? 'Searching...' : 'Search Resumes'}
           </button>
         </div>
       </motion.div>
 
-      {/* Show skeleton while loading and no results yet */}
       {loading && results.length === 0 && (
         <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Searching...</h3>
