@@ -74,17 +74,6 @@ const Navbar = () => {
 
           {/* Right Section - compact */}
           <div className="flex items-center space-x-1 shrink-0">
-            {/* Notifications */}
-            <button
-              onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="relative p-1 text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors"
-            >
-              <FaBell size={14} className="md:text-base" />
-              <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                3
-              </span>
-            </button>
-
             {/* Theme Toggle */}
             <button
               onClick={toggleDarkMode}
