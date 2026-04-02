@@ -6,6 +6,7 @@ const { redisClient } = require('./config/redis'); // ✅ destructure
 const { initQdrant } = require('./services/qdrantService');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 
 app.use(cors({
   origin: [
@@ -17,6 +18,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(helmet());
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/resume', require('./routes/resumeRoutes'));
 app.use('/ai', require('./routes/aiRoutes'));
