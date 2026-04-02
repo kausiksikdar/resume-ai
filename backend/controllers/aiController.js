@@ -5,6 +5,8 @@ const Interview = require('../models/interview_insights');
 const resumeTailorService = require("../services/resumeTailorService");
 const coverLetterService = require("../services/coverLetterService");
 const interviewService = require("../services/interviewService");
+const { getOrSetCache } = require('../utils/cache');
+const { invalidateCache } = require('../utils/cache');
 const mongoose = require('mongoose');
 
 // Resume Tailoring
@@ -87,6 +89,8 @@ exports.saveTailoredResume = async (req, res) => {
       missingSkills: tailoredData.missingSkills || []
     });
 
+    await invalidateCache(`user:${userId}:tailored`);
+
     return res.status(201).json({
       message: "Tailored resume saved successfully",
       data: savedDoc
@@ -102,18 +106,18 @@ exports.saveTailoredResume = async (req, res) => {
 // 🔹 3. Get All Tailored Resumes
 exports.getAllTailoredResumes = async (req, res) => {
   try {
-    const resumes = await ResumeTailoring.find({
-      user: req.user.id
-    })
-      .sort({ createdAt: -1 });
+    const userId = req.user.id;
+    const cacheKey = `user:${userId}:tailored`;
 
-    // ✅ Return the array directly (not wrapped in an object)
+    const resumes = await getOrSetCache(cacheKey, async () => {
+      return await ResumeTailoring.find({ user: userId })
+        .sort({ createdAt: -1 });
+    }, 300);
+
     return res.json(resumes);
   } catch (err) {
-    console.error("Get All Resumes Error:", err);
-    return res.status(500).json({
-      message: "Failed to fetch resumes"
-    });
+    console.error('Get All Resumes Error:', err);
+    return res.status(500).json({ message: 'Failed to fetch resumes' });
   }
 };
 
@@ -156,6 +160,10 @@ exports.deleteTailoredResume = async (req, res) => {
       return res.status(404).json({
         message: "Resume not found or already deleted"
       });
+    }
+
+    if (deleted) {
+      await invalidateCache(`user:${req.user.id}:tailored`);
     }
 
     return res.json({
@@ -249,6 +257,8 @@ exports.saveCoverLetter = async (req, res) => {
       description: description || ""
     });
 
+    await invalidateCache(`user:${userId}:coverLetters:*`);
+
     return res.status(201).json({
       message: "Cover letter saved successfully",
       data: savedDoc
@@ -264,24 +274,21 @@ exports.saveCoverLetter = async (req, res) => {
 // 🔹 3. Get All Cover Letters
 exports.getAllCoverLetters = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { page = 1, limit = 10 } = req.query;
+    const cacheKey = `user:${userId}:coverLetters:page:${page}:limit:${limit}`;
 
-    const letters = await CoverLetter.find({
-      user: req.user.id
-    })
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+    const letters = await getOrSetCache(cacheKey, async () => {
+      return await CoverLetter.find({ user: userId })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+    }, 300);
 
-    return res.json({
-      count: letters.length,
-      data: letters
-    });
+    return res.json({ count: letters.length, data: letters });
   } catch (err) {
-    console.error("Get All Cover Letters Error:", err);
-    return res.status(500).json({
-      message: "Failed to fetch cover letters"
-    });
+    console.error('Get All Cover Letters Error:', err);
+    return res.status(500).json({ message: 'Failed to fetch cover letters' });
   }
 };
 
@@ -324,6 +331,10 @@ exports.deleteCoverLetter = async (req, res) => {
       return res.status(404).json({
         message: "Cover letter not found or already deleted"
       });
+    }
+
+    if (deleted) {
+      await invalidateCache(`user:${req.user.id}:coverLetters:*`);
     }
 
     return res.json({
@@ -427,23 +438,24 @@ exports.saveInterview = async (req, res) => {
 // 🔹 3. Get All Interviews
 exports.getAllInterviews = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { page = 1, limit = 10 } = req.query;
-    const userObjectId = new mongoose.Types.ObjectId(req.user.id);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const cacheKey = `user:${userId}:interviews:page:${page}:limit:${limit}`;
 
-    const docs = await Interview.find({ userId: userObjectId })
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+    const docs = await getOrSetCache(cacheKey, async () => {
+      return await Interview.find({ userId: userObjectId })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+    }, 300);
 
-    return res.json({
-      count: docs.length,
-      data: docs
-    });
+    await invalidateCache(`user:${userId}:interviews:*`);
+
+    return res.json({ count: docs.length, data: docs });
   } catch (err) {
-    console.error("Get Interviews Error:", err);
-    return res.status(500).json({
-      message: "Failed to fetch interviews"
-    });
+    console.error('Get Interviews Error:', err);
+    return res.status(500).json({ message: 'Failed to fetch interviews' });
   }
 };
 
@@ -490,6 +502,10 @@ exports.deleteInterview = async (req, res) => {
       return res.status(404).json({
         message: "Interview not found or already deleted"
       });
+    }
+
+    if (deleted) {
+      await invalidateCache(`user:${req.user.id}:interviews:*`);
     }
 
     return res.json({

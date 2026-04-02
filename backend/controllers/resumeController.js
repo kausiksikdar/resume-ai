@@ -9,6 +9,8 @@ const semanticSearchService = require("../services/semanticSearchService");
 const { uploadToCloudinary } = require("../services/cloudinary");
 const { COLLECTION_NAME } = require("../services/qdrantService");
 const qdrant = require("../config/qdrant");
+const { getOrSetCache } = require('../utils/cache');
+const { invalidateCache } = require('../utils/cache');
 const cloudinary = require("../config/cloudinary");
 const mongoose = require('mongoose');
 
@@ -100,6 +102,8 @@ exports.uploadResume = async (req, res) => {
       $inc: { "usage.resumesUploaded": 1 }
     });
 
+    await invalidateCache(`user:${userId}:resumes`);
+
     return res.status(201).json(resume);
 
   } catch (err) {
@@ -146,17 +150,16 @@ exports.searchResumes = async (req, res) => {
 exports.getUserResumes = async (req, res) => {
   try {
     const userId = req.user.id;
-    
-    // Convert string to ObjectId for MongoDB query
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    
-    // Use 'userId' field instead of 'user'
-    const resumes = await Resume.find({ userId: userObjectId })
-      .select("_id cloudinaryUrl createdAt originalFileName")
-      .sort({ createdAt: -1 });
+    const cacheKey = `user:${userId}:resumes`;
+
+    const resumes = await getOrSetCache(cacheKey, async () => {
+      return await Resume.find({ userId: userObjectId })
+        .select('_id cloudinaryUrl createdAt originalFileName')
+        .sort({ createdAt: -1 });
+    }, 300); // 5 minutes
 
     res.status(200).json(resumes);
-
   } catch (error) {
     console.error('Error in getUserResumes:', error);
     res.status(500).json({ message: error.message });
@@ -214,25 +217,16 @@ exports.deleteResume = async (req, res) => {
       cloudinaryUrl: resume.cloudinaryUrl
     });
 
-    // Step 1: Delete from Qdrant first
+    // Step 1: Delete from Qdrant
     if (resume.qdrantPointIds && resume.qdrantPointIds.length > 0) {
       try {
         console.log('Deleting from Qdrant, point IDs:', resume.qdrantPointIds);
-        
-        // Delete each point individually or in batch
         const deleteResult = await qdrant.delete(COLLECTION_NAME, {
           points: resume.qdrantPointIds
         });
-        
         console.log('Qdrant delete result:', deleteResult);
-        
-        // Optional: Verify deletion
-        // You can add a check here to verify points are deleted
-        
       } catch (qdrantError) {
         console.error('Error deleting from Qdrant:', qdrantError);
-        // Don't return here - still try to delete from MongoDB
-        // But log the error for debugging
       }
     } else {
       console.log('No Qdrant points found for this resume');
@@ -254,18 +248,17 @@ exports.deleteResume = async (req, res) => {
       $inc: { "usage.resumesUploaded": -1 }
     });
 
-    // Step 4: Optional - Delete from Cloudinary
+    // Step 4: Invalidate caches
+    await invalidateCache(`user:${userId}:resumes`);
+
+    // Step 5: Optional - Delete from Cloudinary
     if (resume.cloudinaryPublicId) {
       try {
         console.log('Deleting from Cloudinary:', resume.cloudinaryPublicId);
-        // Uncomment if you have cloudinary configured
-        // await cloudinary.uploader.destroy(resume.cloudinaryPublicId, {
-        //   resource_type: "raw"
-        // });
+        // await cloudinary.uploader.destroy(resume.cloudinaryPublicId, { resource_type: "raw" });
         console.log('Cloudinary deletion would happen here');
       } catch (cloudinaryError) {
         console.error('Error deleting from Cloudinary:', cloudinaryError);
-        // Don't fail the whole operation for Cloudinary errors
       }
     }
 
