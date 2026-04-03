@@ -327,7 +327,7 @@ const ResumeTailoring = () => {
               )}
               {fullAiResult.keyChanges?.length > 0 && (
                 <div>
-                  <h5 className="font-medium text-gray-700 dark:text-gray-300">Key Changes Made</h5>
+                  <h5 className="font-medium text-gray-700 dark:text-gray-300">Key Changes needed to Made</h5>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1 mt-1">
                     {fullAiResult.keyChanges.map((item, idx) => <li key={idx}>{item}</li>)}
                   </ul>
@@ -351,6 +351,29 @@ const ResumeTailoring = () => {
               )}
             </div>
           )}
+
+          {/* ========== NEW: Graph Insights Section ========== */}
+         {fullAiResult?.graphInsights && (
+  <div className="mt-4 border-t pt-4">
+    <details className="cursor-pointer">
+      <summary className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+        📊 Show skill graph insights (optional)
+      </summary>
+      <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-sm">
+        <p className="text-gray-700 dark:text-gray-300">
+          <strong>Job mentions:</strong> {fullAiResult.graphInsights.sourceSkills?.join(', ') || 'None'}<br />
+          <strong>Related skills often needed:</strong> {fullAiResult.graphInsights.relatedSkills.length > 0
+            ? fullAiResult.graphInsights.relatedSkills.join(', ')
+            : 'None – the job description already covers common related skills.'
+          }
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Based on a knowledge graph of real‑world skill relationships.
+        </p>
+      </div>
+    </details>
+  </div>
+)}
 
           {/* Content to export */}
           <div id="tailored-resume-content" className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg whitespace-pre-wrap font-mono text-sm max-h-96 overflow-auto text-gray-800 dark:text-gray-200">
