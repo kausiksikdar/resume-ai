@@ -9,7 +9,7 @@
 
 ## What is ResumeAI?
 
-ResumeAI is a full-stack AI career platform that combines **vector embeddings**, **semantic search**, **graph-based recommendations**, and a **RAG (Retrieval-Augmented Generation) pipeline** to help job seekers tailor their resumes, generate cover letters, prepare for interviews, and discover matching job opportunities — all powered by Google Gemini.
+ResumeAI is a full-stack AI career platform that combines **vector embeddings**, **semantic search**, **graph-based recommendations**, and a **RAG (Retrieval-Augmented Generation) pipeline** to help job seekers tailor their resumes, generate cover letters, prepare for interviews, track job applications, and discover matching job opportunities — all powered by Google Gemini.
 
 ---
 
@@ -47,6 +47,7 @@ Return tailored resume + graph insights
 
 ```
 
+
 ---
 
 ## Features
@@ -77,11 +78,14 @@ Add job descriptions manually. The system embeds them (rate-limited to 10/day) a
 ### Knowledge Graph Skill Recommendations
 A Neo4j graph stores skill relationships (e.g., `React → Redux`, `Node.js → Express`). When a job description mentions certain skills, the graph returns related skills that are not already present, providing data‑driven suggestions for career growth.
 
+### Application Tracker
+Log job applications (company, role, status, date, notes). Link each application to a tailored resume or cover letter. Update status as you progress (Saved → Applied → Interview → Offer → Rejected). All applications are stored and displayed in a dedicated dashboard, helping you organise your job search pipeline.
+
 ### Dashboard
-Central view of all saved tailored resumes, cover letters, and interview question sets. See match scores, AI analysis, and graph‑derived skill insights.
+Central view of all saved tailored resumes, cover letters, interview question sets, and tracked job applications. See match scores, AI analysis, graph‑derived skill insights, and application statuses.
 
 ### PDF Export
-Download any generated content as a PDF using `html2pdf.js`.
+Download any generated content (tailored resume, cover letter) as a PDF using `html2pdf.js`.
 
 ### Dark / Light Theme
 Toggle between themes with preference persisted in localStorage.
@@ -206,10 +210,10 @@ npm run dev
 
 # Start frontend (in another terminal)
 cd frontend && npm run dev
-
+```
 ---
 
-Roadmap
+## Roadmap
 Retrieval evaluation metrics (precision@k, relevance scoring)
 
 Streaming LLM responses to frontend
