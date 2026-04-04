@@ -15,7 +15,8 @@ import {
   FaBriefcase,
   FaKey,
   FaMoon,
-  FaSun
+  FaSun,
+  FaClipboardList   
 } from 'react-icons/fa';
 import NotificationCenter from '../Notifications/NotificationCenter';
 
@@ -34,6 +35,7 @@ const Navbar = () => {
     { path: '/cover-letter', name: 'Cover Letter', icon: FaEnvelope },
     { path: '/interview-insights', name: 'Insights', icon: FaLightbulb },
     { path: '/job-matcher', name: 'Job Matcher', icon: FaBriefcase },
+    { path: '/application-tracker', name: 'Tracker', icon: FaClipboardList }  
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -54,8 +56,8 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* Desktop Navigation - fits all in one line */}
-          <div className="hidden md:flex items-center space-x-0.5 lg:space-x-1 xl:space-x-1.5">
+          {/* Desktop Navigation - fits all in one line (wraps if needed) */}
+          <div className="hidden md:flex items-center space-x-0.5 lg:space-x-1 xl:space-x-1.5 flex-wrap">
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -113,7 +115,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu (unchanged, but compact) */}
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-3 border-t dark:border-gray-700">
             {navItems.map((item) => (

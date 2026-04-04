@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaBriefcase, FaSearch, FaSpinner, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaBriefcase, FaSearch, FaSpinner, FaTrash, FaPlus, FaSync } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { getUserResumes } from '../../services/api';
 import { getJobs, saveJob, deleteJob, matchJobs } from '../../services/api';
@@ -13,14 +13,14 @@ const JobMatcher = () => {
   const [selectedResumeId, setSelectedResumeId] = useState('');
   const [jobs, setJobs] = useState([]);
   const [matches, setMatches] = useState([]);
-  const [loadingJobs, setLoadingJobs] = useState(false);
+  const [loadingJobs, setLoadingJobs] = useState(true);
   const [matching, setMatching] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newJob, setNewJob] = useState({ title: '', company: '', description: '', url: '', location: '' });
 
   useEffect(() => {
     loadResumes();
-    loadJobs();
+    loadJobs(true); // initial load with skeleton
   }, []);
 
   const loadResumes = async () => {
@@ -32,15 +32,15 @@ const JobMatcher = () => {
     }
   };
 
-  const loadJobs = async () => {
-    setLoadingJobs(true);
+  const loadJobs = async (showSkeleton = false) => {
+    if (showSkeleton) setLoadingJobs(true);
     try {
       const data = await getJobs();
-      setJobs(data);
+      setJobs(Array.isArray(data) ? data : []);
     } catch (err) {
       toast.error('Failed to load jobs');
     } finally {
-      setLoadingJobs(false);
+      if (showSkeleton) setLoadingJobs(false);
     }
   };
 
@@ -50,24 +50,48 @@ const JobMatcher = () => {
       toast.error('Title and description are required');
       return;
     }
+    
+    // Optimistically add job to UI
+    const tempId = Date.now().toString();
+    const optimisticJob = {
+      _id: tempId,
+      title: newJob.title,
+      company: newJob.company || '',
+      description: newJob.description,
+      url: newJob.url || '',
+      location: newJob.location || '',
+      embeddingGenerated: false,
+      createdAt: new Date()
+    };
+    setJobs(prev => [optimisticJob, ...prev]);
+    
     try {
-      await saveJob(newJob);
+      const result = await saveJob(newJob);
+      // Replace optimistic job with real one
+      setJobs(prev => prev.map(job => job._id === tempId ? result : job));
       toast.success('Job added, embedding will be generated soon');
       setNewJob({ title: '', company: '', description: '', url: '', location: '' });
       setShowAddForm(false);
-      loadJobs();
     } catch (err) {
+      // Rollback on error
+      setJobs(prev => prev.filter(job => job._id !== tempId));
       toast.error('Failed to add job');
     }
   };
 
   const handleDeleteJob = async (id) => {
     if (!window.confirm('Delete this job?')) return;
+    
+    // Optimistically remove from UI
+    const previousJobs = [...jobs];
+    setJobs(prev => prev.filter(job => job._id !== id));
+    
     try {
       await deleteJob(id);
       toast.success('Job deleted');
-      loadJobs();
     } catch (err) {
+      // Rollback
+      setJobs(previousJobs);
       toast.error('Failed to delete');
     }
   };
@@ -130,12 +154,21 @@ const JobMatcher = () => {
       <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">My Jobs</h3>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="btn-secondary flex items-center gap-1"
-          >
-            <FaPlus size={12} /> Add Job
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => loadJobs(true)}
+              className="btn-secondary flex items-center gap-1 text-sm"
+              title="Refresh jobs"
+            >
+              <FaSync size={12} /> Refresh
+            </button>
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="btn-secondary flex items-center gap-1"
+            >
+              <FaPlus size={12} /> Add Job
+            </button>
+          </div>
         </div>
 
         {showAddForm && (

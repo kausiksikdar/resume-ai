@@ -5,13 +5,16 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { GenerationProvider } from './context/GenerationContext';
+import { DocumentChangeProvider } from './context/DocumentChangeContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
           <GenerationProvider>
-            <App />
+            <DocumentChangeProvider>
+              <App />
+            </DocumentChangeProvider>
           </GenerationProvider>
     </ThemeProvider>
   </React.StrictMode>

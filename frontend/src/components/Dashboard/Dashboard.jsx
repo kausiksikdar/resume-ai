@@ -107,29 +107,44 @@ const Dashboard = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this document?')) return;
-    try {
-      switch (activeTab) {
-        case 'tailored':
-          await deleteTailoredResume(id);
-          break;
-        case 'coverLetters':
-          await deleteCoverLetter(id);
-          break;
-        case 'insights':
-          await deleteInterview(id);
-          break;
-      }
-      showNotification('Document deleted successfully', 'success');
-      toast.success('Document deleted');
-      loadDocuments();
-      loadAllStats();
-    } catch (error) {
-      console.error('Error deleting document:', error);
-      showNotification('Failed to delete document', 'error');
-      toast.error('Failed to delete');
+  if (!window.confirm('Are you sure you want to delete this document?')) return;
+
+  // Find the document to be deleted (for potential rollback)
+  const deletedDoc = documents.find(doc => (doc._id || doc.id) === id);
+  if (!deletedDoc) return;
+
+  // Optimistically remove from UI
+  const newDocuments = documents.filter(doc => (doc._id || doc.id) !== id);
+  setDocuments(newDocuments);
+
+  // Optimistically update stats
+  const statKey = activeTab === 'tailored' ? 'tailored' : (activeTab === 'coverLetters' ? 'coverLetters' : 'insights');
+  setStats(prev => ({ ...prev, [statKey]: prev[statKey] - 1 }));
+
+  try {
+    switch (activeTab) {
+      case 'tailored':
+        await deleteTailoredResume(id);
+        break;
+      case 'coverLetters':
+        await deleteCoverLetter(id);
+        break;
+      case 'insights':
+        await deleteInterview(id);
+        break;
     }
-  };
+    showNotification('Document deleted successfully', 'success');
+    toast.success('Document deleted');
+    // No need to reload documents – already removed from UI
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    // Rollback on error
+    setDocuments(documents); // restore original list
+    setStats(prev => ({ ...prev, [statKey]: prev[statKey] + 1 }));
+    showNotification('Failed to delete document', 'error');
+    toast.error('Failed to delete');
+  }
+};
 
   const getScoreColor = (score) => {
     if (score >= 80) return 'score-high';
