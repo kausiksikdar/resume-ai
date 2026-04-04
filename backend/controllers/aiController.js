@@ -7,7 +7,7 @@ const coverLetterService = require("../services/coverLetterService");
 const interviewService = require("../services/interviewService");
 const { getOrSetCache } = require('../utils/cache');
 const { invalidateCache } = require('../utils/cache');
-const { getGraphInsights } = require('../services/neo4jService');
+const { getRecommendedSkillsFromMissing } = require('../services/neo4jService');
 const mongoose = require('mongoose');
 
 // Resume Tailoring
@@ -22,11 +22,9 @@ exports.generateResume = async (req, res) => {
       });
     }
 
-    // Convert to ObjectId
     const objectId = new mongoose.Types.ObjectId(resumeId);
     const userId = new mongoose.Types.ObjectId(req.user.id);
 
-    // Fetch resume
     const resume = await Resume.findOne({
       _id: objectId,
       userId: userId
@@ -37,21 +35,28 @@ exports.generateResume = async (req, res) => {
       return res.status(404).json({ message: "Resume not found" });
     }
 
-    // 1. Get graph insights from Neo4j (optional, non‑blocking)
-    let graphInsights = null;
-    try {
-      graphInsights = await getGraphInsights(jobDescriptionText);
-    } catch (err) {
-      console.warn("Neo4j graph insight error:", err.message);
-      // Continue without graph insights
-    }
-
-    // 2. Generate tailored resume via AI (pass graphInsights if your service uses it)
+    // 1. Generate AI result (no graph call yet)
     const result = await resumeTailorService.generateResumeTailoring({
       resumeText: resume.extractedText,
-      jobDescriptionText,
-      graphInsights   // optional – your service can ignore it if not needed
+      jobDescriptionText
     });
+
+    // 2. Use missingSkills from AI to query Neo4j
+    let graphInsights = null;
+    if (result.missingSkills && result.missingSkills.length > 0) {
+      try {
+        const recommendedSkills = await getRecommendedSkillsFromMissing(result.missingSkills);
+        if (recommendedSkills.length > 0) {
+          graphInsights = {
+            missingSkills: result.missingSkills,
+            recommendedSkills: recommendedSkills,
+            source: 'Neo4j knowledge graph based on missing skills'
+          };
+        }
+      } catch (err) {
+        console.warn('Neo4j recommendation error:', err.message);
+      }
+    }
 
     // 3. Return AI result plus graph insights (if any)
     return res.json({

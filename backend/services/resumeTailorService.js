@@ -1,5 +1,3 @@
-// services/resumeTailorService.js
-
 const { generateWithLLM } = require("./llmService");
 
 exports.generateResumeTailoring = async ({
@@ -7,17 +5,21 @@ exports.generateResumeTailoring = async ({
   jobDescriptionText
 }) => {
   const prompt = `
-Tailor this resume for the job. Respond ONLY with JSON:
+You are an expert resume writer. Rewrite the resume to match the job description.
+
+Rules:
+1. Change wording, rephrase, add keywords from JD.
+2. Do NOT add new skills to the resume. Only rephrase existing ones.
+3. List missing skills (skills required by JD but absent from resume) in the "missingSkills" array. If none, return an empty array.
+4. Return STRICT JSON.
 
 {
   "matchScore": 85,
-  "tailoredResume": "Complete tailored resume text...",
-  "keyChanges": ["Added keywords", "Rewrote bullets"],
-  "suggestions": ["Add metrics", "ATS keywords"],
-  "missingSkills": []
+  "tailoredResume": "full rewritten resume...",
+  "keyChanges": ["...", "..."],
+  "suggestions": ["...", "..."],
+  "missingSkills": ["Skill1", "Skill2"]   // ← MUST be filled if any missing
 }
-
-Score 0-100 (higher = better fit).
 
 Resume:
 ${resumeText}
@@ -27,8 +29,8 @@ ${jobDescriptionText}
 `;
 
   const rawResponse = await generateWithLLM(prompt);
+  console.log('Raw LLM response:', rawResponse);
 
-  // Default fallback (VERY IMPORTANT)
   let structured = {
     matchScore: 50,
     keyChanges: [],
@@ -38,14 +40,11 @@ ${jobDescriptionText}
   };
 
   try {
-    // Try extracting JSON safely
     const jsonMatch =
       rawResponse.match(/```json\s*(\{[\s\S]*?\})\s*```/s) ||
       rawResponse.match(/(\{[\s\S]*\})/);
-
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[1]);
-
       structured = {
         matchScore: parsed.matchScore ?? 50,
         keyChanges: parsed.keyChanges ?? [],
@@ -56,6 +55,14 @@ ${jobDescriptionText}
     }
   } catch (err) {
     console.warn("Resume tailoring JSON parse failed:", err.message);
+  }
+
+  console.log('Parsed missingSkills:', structured.missingSkills);
+
+  // Remove any missing skills accidentally added to the resume
+  for (const skill of structured.missingSkills) {
+    const regex = new RegExp(`\\b${skill}\\b`, 'gi');
+    structured.tailoredResume = structured.tailoredResume.replace(regex, '');
   }
 
   return structured;
