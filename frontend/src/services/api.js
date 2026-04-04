@@ -171,6 +171,8 @@ export const deleteInterview = async (id) => {
   return response.data;
 };
 
+// ==================== Job Routes ====================
+
 export const getJobs = async () => {
   const response = await api.get('/jobs');
   return response.data;
@@ -188,6 +190,11 @@ export const deleteJob = async (id) => {
 
 export const matchJobs = async (resumeId) => {
   const response = await api.post('/jobs/match', { resumeId });
+  return response.data;
+};
+
+export const fetchExternalJobs = async (keywords, location) => {
+  const response = await api.post('/jobs/fetch-external', { keywords, location });
   return response.data;
 };
 

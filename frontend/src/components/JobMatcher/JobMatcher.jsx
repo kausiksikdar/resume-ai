@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { FaBriefcase, FaSearch, FaSpinner, FaTrash, FaPlus, FaSync } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { getUserResumes } from '../../services/api';
-import { getJobs, saveJob, deleteJob, matchJobs } from '../../services/api';
+import { getJobs, saveJob, deleteJob, matchJobs, fetchExternalJobs, createApplication } from '../../services/api';
 import { SkeletonJobItem } from '../Common/Skeleton';
 import toast from 'react-hot-toast';
 
@@ -17,10 +17,13 @@ const JobMatcher = () => {
   const [matching, setMatching] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newJob, setNewJob] = useState({ title: '', company: '', description: '', url: '', location: '' });
+  const [searchKeywords, setSearchKeywords] = useState('');
+  const [searchLocation, setSearchLocation] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
     loadResumes();
-    loadJobs(true); // initial load with skeleton
+    loadJobs(true);
   }, []);
 
   const loadResumes = async () => {
@@ -50,8 +53,6 @@ const JobMatcher = () => {
       toast.error('Title and description are required');
       return;
     }
-    
-    // Optimistically add job to UI
     const tempId = Date.now().toString();
     const optimisticJob = {
       _id: tempId,
@@ -64,16 +65,13 @@ const JobMatcher = () => {
       createdAt: new Date()
     };
     setJobs(prev => [optimisticJob, ...prev]);
-    
     try {
       const result = await saveJob(newJob);
-      // Replace optimistic job with real one
       setJobs(prev => prev.map(job => job._id === tempId ? result : job));
       toast.success('Job added, embedding will be generated soon');
       setNewJob({ title: '', company: '', description: '', url: '', location: '' });
       setShowAddForm(false);
     } catch (err) {
-      // Rollback on error
       setJobs(prev => prev.filter(job => job._id !== tempId));
       toast.error('Failed to add job');
     }
@@ -81,16 +79,12 @@ const JobMatcher = () => {
 
   const handleDeleteJob = async (id) => {
     if (!window.confirm('Delete this job?')) return;
-    
-    // Optimistically remove from UI
     const previousJobs = [...jobs];
     setJobs(prev => prev.filter(job => job._id !== id));
-    
     try {
       await deleteJob(id);
       toast.success('Job deleted');
     } catch (err) {
-      // Rollback
       setJobs(previousJobs);
       toast.error('Failed to delete');
     }
@@ -114,6 +108,42 @@ const JobMatcher = () => {
     }
   };
 
+  const handleFetchExternalJobs = async () => {
+    if (!searchKeywords.trim()) {
+      toast.error('Enter job keywords');
+      return;
+    }
+    setIsFetching(true);
+    try {
+      const response = await fetchExternalJobs(searchKeywords, searchLocation);
+      toast.success(response.message);
+      loadJobs();
+      setSearchKeywords('');
+      setSearchLocation('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to fetch jobs');
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+ const handleAddToTracker = async (job) => {
+  try {
+    await createApplication({
+      jobTitle: job.title,
+      company: job.company,
+      jobDescription: job.description,
+      url: job.url || '',   
+      status: 'Saved',
+      notes: `Matched with ${(job.score * 100).toFixed(1)}% similarity`,
+    });
+    toast.success('Added to Application Tracker');
+  } catch (err) {
+    console.error('Add to tracker error:', err);
+    toast.error(err.response?.data?.message || 'Failed to add to tracker');
+  }
+};
+
   return (
     <div className="space-y-6">
       <motion.div className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -125,7 +155,34 @@ const JobMatcher = () => {
           Add jobs you're interested in. Our system will embed up to 10 jobs per day (Gemini limit) and then match them against your resume.
         </p>
 
-        {/* Resume selection */}
+        <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">Find New Jobs</h3>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="Job title or keywords (e.g., React Developer)"
+              value={searchKeywords}
+              onChange={(e) => setSearchKeywords(e.target.value)}
+              className="input-field flex-1"
+            />
+            <input
+              type="text"
+              placeholder="Location (optional, e.g., Bangalore)"
+              value={searchLocation}
+              onChange={(e) => setSearchLocation(e.target.value)}
+              className="input-field flex-1"
+            />
+            <button
+              onClick={handleFetchExternalJobs}
+              disabled={isFetching}
+              className="btn-primary whitespace-nowrap"
+            >
+              {isFetching ? 'Searching...' : 'Search & Add Jobs'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Powered by JSearch. Free plan: 200 requests/month.</p>
+        </div>
+
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Resume</label>
           <select
@@ -150,7 +207,6 @@ const JobMatcher = () => {
         </button>
       </motion.div>
 
-      {/* Add Job Button */}
       <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">My Jobs</h3>
@@ -173,6 +229,7 @@ const JobMatcher = () => {
 
         {showAddForm && (
           <form onSubmit={handleAddJob} className="mb-4 space-y-3 border border-gray-200 dark:border-gray-700 p-4 rounded-lg">
+            {/* form fields unchanged */}
             <input
               type="text"
               placeholder="Job Title *"
@@ -234,6 +291,7 @@ const JobMatcher = () => {
                   {job.company && <p className="text-sm text-gray-600 dark:text-gray-400">{job.company}</p>}
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     {job.embeddingGenerated ? '✅ Embedded' : '⏳ Pending embedding'}
+                    {job.source === 'jsearch' && <span className="ml-1 text-blue-500">(JSearch)</span>}
                   </p>
                 </div>
                 <button onClick={() => handleDeleteJob(job._id)} className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
@@ -245,13 +303,13 @@ const JobMatcher = () => {
         )}
       </div>
 
-      {/* Matching Results */}
       {matching && (
         <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Matching Jobs</h3>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 animate-pulse">
+                {/* skeleton content unchanged */}
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2"></div>
@@ -287,11 +345,19 @@ const JobMatcher = () => {
                   </span>
                 </div>
                 <p className="mt-2 text-gray-700 dark:text-gray-300 line-clamp-3">{job.description}</p>
-                {job.url && (
-                  <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm mt-2 inline-block">
-                    Apply Now →
-                  </a>
-                )}
+                <div className="mt-2 flex justify-between items-center">
+                  {job.url && (
+                    <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm">
+                      Apply Now →
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleAddToTracker(job)}
+                    className="text-sm text-green-600 dark:text-green-400 hover:underline"
+                  >
+                    Add to Tracker
+                  </button>
+                </div>
               </div>
             ))}
           </div>
