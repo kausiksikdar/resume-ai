@@ -26,23 +26,23 @@ Embedding Generation (Gemini)
       │
  ┌────┴────────────┐
  ▼                 ▼
-MongoDB          Qdrant
-(metadata)      (vectors)
-  │                 │
-  └──────┬──────────┘
-         ▼
+MongoDB         Qdrant
+(metadata)     (vectors)
+   │              │
+   └──────┬───────┘
+          ▼
 Vector Search (semantic similarity)
-         │
-         ▼
+          │
+          ▼
 Retrieved Chunks (top-k)
-         │
-         ▼
+          │
+          ▼
 Prompt + Context → Gemini → AI Output
-         │
-         ▼
+          │
+          ▼
 Neo4j Knowledge Graph (skill recommendations)
-         │
-         ▼
+          │
+          ▼
 Return tailored resume + graph insights
 
 
@@ -186,8 +186,6 @@ NEO4J_PASSWORD=your_neo4j_password
 # Frontend
 VITE_API_URL=http://localhost:3000
 ### Installation
-
-## Installation
 
 # Clone the repo
 git clone https://github.com/yourusername/resume-ai.git
