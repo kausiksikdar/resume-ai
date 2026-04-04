@@ -45,6 +45,7 @@ Neo4j Knowledge Graph (skill recommendations)
           ▼
 Return tailored resume + graph insights
 
+```
 
 ---
 
