@@ -11,7 +11,7 @@ const jobEmbeddingQueue = new Queue('job embedding', {
   redis: redisOptions,
 });
 
-const DAILY_LIMIT = process.env.DAILY_EMBEDDING_LIMIT || 10;
+const DAILY_LIMIT = process.env.DAILY_EMBEDDING_LIMIT || 50;
 
 const getTodayKey = () => `embedding_count:${new Date().toISOString().slice(0, 10)}`;
 

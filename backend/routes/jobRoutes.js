@@ -7,5 +7,6 @@ router.post('/', auth, jobController.saveJob);
 router.get('/', auth, jobController.getJobs);
 router.delete('/:id', auth, jobController.deleteJob);
 router.post('/match', auth, jobController.matchJobs);
+router.post('/fetch-external', auth, jobController.fetchAndSaveExternalJobs);
 
 module.exports = router;
