@@ -1,18 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FaMagic, FaSpinner, FaSearch, FaSave, FaDownload, FaFilePdf } from 'react-icons/fa';
-import { useNotifications } from '../../context/NotificationContext';
-import { useGeneration } from '../../context/GenerationContext';
-import { semanticSearch, generateTailoredResume, saveTailoredResume } from '../../services/api';
-import SearchResults from '../SemanticSearch/SearchResults';
-import { SkeletonSearchResult } from '../Common/Skeleton';
-import toast from 'react-hot-toast';
-import { exportToPDF } from '../../utils/exportToPDF';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  FaMagic,
+  FaSpinner,
+  FaSearch,
+  FaSave,
+  FaDownload,
+  FaFilePdf,
+} from "react-icons/fa";
+import { useNotifications } from "../../context/NotificationContext";
+import { useGeneration } from "../../context/GenerationContext";
+import {
+  semanticSearch,
+  generateTailoredResume,
+  saveTailoredResume,
+} from "../../services/api";
+import SearchResults from "../SemanticSearch/SearchResults";
+import { SkeletonSearchResult } from "../Common/Skeleton";
+import toast from "react-hot-toast";
+import { exportToPDF } from "../../utils/exportToPDF";
 
 const ResumeTailoring = () => {
   const { showNotification } = useNotifications();
   const { tailoredData, setTailoredData, clearTailored } = useGeneration();
-  const [jobDescription, setJobDescription] = useState('');
+  const [jobDescription, setJobDescription] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [selectedResume, setSelectedResume] = useState(null);
   const [tailoredContent, setTailoredContent] = useState(null);
@@ -21,8 +32,8 @@ const ResumeTailoring = () => {
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [description, setDescription] = useState('');
+  const [customName, setCustomName] = useState("");
+  const [description, setDescription] = useState("");
 
   // Restore from context on mount
   useEffect(() => {
@@ -33,12 +44,12 @@ const ResumeTailoring = () => {
   }, [tailoredData]);
 
   useEffect(() => {
-    console.log('Tailored content state changed:', tailoredContent);
+    console.log("Tailored content state changed:", tailoredContent);
   }, [tailoredContent]);
 
   const handleSearch = async () => {
     if (!jobDescription.trim()) {
-      toast.error('Please enter a job description');
+      toast.error("Please enter a job description");
       return;
     }
     setSearching(true);
@@ -46,13 +57,13 @@ const ResumeTailoring = () => {
       const results = await semanticSearch(jobDescription, 5);
       setSearchResults(results);
       if (results.length === 0) {
-        toast('No matching resumes found', { icon: '🔍' });
+        toast("No matching resumes found", { icon: "🔍" });
       } else {
         toast.success(`Found ${results.length} matching resumes`);
       }
     } catch (error) {
-      console.error('Search error:', error);
-      toast.error('Failed to search resumes');
+      console.error("Search error:", error);
+      toast.error("Failed to search resumes");
     } finally {
       setSearching(false);
     }
@@ -60,30 +71,35 @@ const ResumeTailoring = () => {
 
   const handleGenerate = async () => {
     if (!selectedResume) {
-      toast.error('Please select a resume first');
+      toast.error("Please select a resume first");
       return;
     }
     if (!jobDescription.trim()) {
-      toast.error('Please enter a job description');
+      toast.error("Please enter a job description");
       return;
     }
     setLoading(true);
     setSaved(false);
     setFullAiResult(null);
-    setCustomName('');
-    setDescription('');
+    setCustomName("");
+    setDescription("");
     try {
-      const result = await generateTailoredResume(selectedResume.id, jobDescription);
-      console.log('Full AI result:', result);
+      const result = await generateTailoredResume(
+        selectedResume.id,
+        jobDescription,
+      );
+      console.log("Full AI result:", result);
       setFullAiResult(result);
       const tailoredText = result.tailoredResume || result;
       setTailoredContent(tailoredText);
       // Save to context
       setTailoredData({ content: tailoredText, fullResult: result });
-      toast.success('Tailored resume generated successfully!');
+      toast.success("Tailored resume generated successfully!");
     } catch (error) {
-      console.error('Generation error:', error);
-      toast.error(error.response?.data?.message || 'Failed to generate tailored resume');
+      console.error("Generation error:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to generate tailored resume",
+      );
     } finally {
       setLoading(false);
     }
@@ -91,11 +107,11 @@ const ResumeTailoring = () => {
 
   const handleSave = async () => {
     if (!tailoredContent) {
-      toast.error('No tailored resume to save. Please generate first.');
+      toast.error("No tailored resume to save. Please generate first.");
       return;
     }
     if (!selectedResume) {
-      toast.error('No resume selected');
+      toast.error("No resume selected");
       return;
     }
     setSaving(true);
@@ -108,21 +124,23 @@ const ResumeTailoring = () => {
           matchScore: fullAiResult?.matchScore,
           keyChanges: fullAiResult?.keyChanges || [],
           suggestions: fullAiResult?.suggestions || [],
-          missingSkills: fullAiResult?.missingSkills || []
+          missingSkills: fullAiResult?.missingSkills || [],
         },
         customName: customName.trim() || null,
-        description: description.trim()
+        description: description.trim(),
       });
       setSaved(true);
       // Clear context after successful save
       clearTailored();
       setTailoredContent(null);
       setFullAiResult(null);
-      showNotification('Resume tailored and saved successfully!', 'success');
-      toast.success('Resume saved successfully!');
+      showNotification("Resume tailored and saved successfully!", "success");
+      toast.success("Resume saved successfully!");
     } catch (error) {
-      console.error('Save error:', error);
-      toast.error(error.response?.data?.message || 'Failed to save tailored resume');
+      console.error("Save error:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to save tailored resume",
+      );
     } finally {
       setSaving(false);
     }
@@ -131,22 +149,24 @@ const ResumeTailoring = () => {
   const handleCopyToClipboard = () => {
     if (tailoredContent) {
       navigator.clipboard.writeText(tailoredContent);
-      toast.success('Copied to clipboard!');
+      toast.success("Copied to clipboard!");
     }
   };
 
   const handleExportPDF = () => {
     if (tailoredContent) {
-      exportToPDF('tailored-resume-content', 'tailored-resume.pdf');
+      exportToPDF("tailored-resume-content", "tailored-resume.pdf");
     } else {
-      toast.error('No content to export');
+      toast.error("No content to export");
     }
   };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-    if (score >= 60) return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
-    return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
+    if (score >= 80)
+      return "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300";
+    if (score >= 60)
+      return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300";
+    return "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300";
   };
 
   return (
@@ -159,7 +179,9 @@ const ResumeTailoring = () => {
       >
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
           <FaMagic className="text-indigo-600 dark:text-indigo-400" />
-          <span className="text-gray-800 dark:text-gray-200">Resume Tailoring</span>
+          <span className="text-gray-800 dark:text-gray-200">
+            Resume Tailoring
+          </span>
         </h2>
         <div className="space-y-4">
           <div>
@@ -188,7 +210,9 @@ const ResumeTailoring = () => {
       {/* Skeleton while searching */}
       {searching && searchResults.length === 0 && (
         <div className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Searching for matching resumes...</h3>
+          <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">
+            Searching for matching resumes...
+          </h3>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <SkeletonSearchResult key={i} />
@@ -213,9 +237,13 @@ const ResumeTailoring = () => {
           animate={{ opacity: 1, y: 0 }}
           className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Selected Resume</h3>
+          <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">
+            Selected Resume
+          </h3>
           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg mb-4">
-            <p className="font-medium text-gray-800 dark:text-gray-200">{selectedResume.filename}</p>
+            <p className="font-medium text-gray-800 dark:text-gray-200">
+              {selectedResume.filename}
+            </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-3">
               {selectedResume.content?.substring(0, 200)}...
             </p>
@@ -226,7 +254,7 @@ const ResumeTailoring = () => {
             className="btn-primary w-full flex items-center justify-center gap-2"
           >
             {loading ? <FaSpinner className="animate-spin" /> : <FaMagic />}
-            {loading ? 'Generating...' : 'Generate Tailored Resume'}
+            {loading ? "Generating..." : "Generate Tailored Resume"}
           </button>
         </motion.div>
       )}
@@ -259,7 +287,9 @@ const ResumeTailoring = () => {
           className="card p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">Tailored Resume</h3>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Tailored Resume
+            </h3>
             <div className="flex gap-2">
               <button
                 onClick={handleCopyToClipboard}
@@ -278,11 +308,19 @@ const ResumeTailoring = () => {
                 disabled={saving || saved}
                 className={`px-3 py-1 rounded-lg flex items-center gap-1 text-sm ${
                   saved
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 cursor-default'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500'
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 cursor-default"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500"
                 }`}
               >
-                {saving ? <FaSpinner className="animate-spin" size={12} /> : saved ? 'Saved ✓' : <><FaSave size={12} /> Save</>}
+                {saving ? (
+                  <FaSpinner className="animate-spin" size={12} />
+                ) : saved ? (
+                  "Saved ✓"
+                ) : (
+                  <>
+                    <FaSave size={12} /> Save
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -316,67 +354,90 @@ const ResumeTailoring = () => {
           {/* AI Analysis Section */}
           {fullAiResult && (
             <div className="mb-4 space-y-3 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-800 dark:text-gray-200">Tailoring Analysis</h4>
+              <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                Tailoring Analysis
+              </h4>
               {fullAiResult.matchScore !== undefined && (
                 <div>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Match Score:</span>
-                  <span className={`ml-2 px-2 py-0.5 rounded-full text-sm ${getScoreColor(fullAiResult.matchScore)}`}>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    Match Score:
+                  </span>
+                  <span
+                    className={`ml-2 px-2 py-0.5 rounded-full text-sm ${getScoreColor(fullAiResult.matchScore)}`}
+                  >
                     {fullAiResult.matchScore}%
                   </span>
                 </div>
               )}
               {fullAiResult.keyChanges?.length > 0 && (
                 <div>
-                  <h5 className="font-medium text-gray-700 dark:text-gray-300">Key Changes needed to Made</h5>
+                  <h5 className="font-medium text-gray-700 dark:text-gray-300">
+                    Key Changes needed to Made
+                  </h5>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1 mt-1">
-                    {fullAiResult.keyChanges.map((item, idx) => <li key={idx}>{item}</li>)}
+                    {fullAiResult.keyChanges.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
                   </ul>
                 </div>
               )}
               {fullAiResult.suggestions?.length > 0 && (
                 <div>
-                  <h5 className="font-medium text-gray-700 dark:text-gray-300">Suggestions for Improvement</h5>
+                  <h5 className="font-medium text-gray-700 dark:text-gray-300">
+                    Suggestions for Improvement
+                  </h5>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1 mt-1">
-                    {fullAiResult.suggestions.map((item, idx) => <li key={idx}>{item}</li>)}
+                    {fullAiResult.suggestions.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
                   </ul>
                 </div>
               )}
               {fullAiResult.missingSkills?.length > 0 && (
                 <div>
-                  <h5 className="font-medium text-gray-700 dark:text-gray-300">Missing Skills</h5>
+                  <h5 className="font-medium text-gray-700 dark:text-gray-300">
+                    Missing Skills
+                  </h5>
                   <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1 mt-1">
-                    {fullAiResult.missingSkills.map((item, idx) => <li key={idx}>{item}</li>)}
+                    {fullAiResult.missingSkills.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
                   </ul>
                 </div>
               )}
             </div>
           )}
 
-          {/* ========== NEW: Graph Insights Section ========== */}
-         {fullAiResult?.graphInsights && (
-  <div className="mt-4 border-t pt-4">
-    <details className="cursor-pointer">
-      <summary className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">
-        📊 Show skill graph insights (optional)
-      </summary>
-      <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-sm">
-        <p className="text-gray-700 dark:text-gray-300">
-          <strong>Job mentions:</strong> {fullAiResult.graphInsights.sourceSkills?.join(', ') || 'None'}<br />
-          <strong>Related skills often needed:</strong> {fullAiResult.graphInsights.relatedSkills.length > 0
-            ? fullAiResult.graphInsights.relatedSkills.join(', ')
-            : 'None – the job description already covers common related skills.'
-          }
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Based on a knowledge graph of real‑world skill relationships.
-        </p>
-      </div>
-    </details>
-  </div>
-)}
-
+          {/* ========== Graph Insights Section (based on missing skills) ========== */}
+          {fullAiResult?.graphInsights &&
+            fullAiResult.graphInsights.recommendedSkills?.length > 0 && (
+              <div className="mt-4 border-t pt-4">
+                <details className="cursor-pointer">
+                  <summary className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+                    📊 Recommended Skills (Based on Missing Skills)
+                  </summary>
+                  <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-sm">
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <strong>Missing skills identified:</strong>{" "}
+                      {fullAiResult.graphInsights.missingSkills?.join(", ") ||
+                        "None"}
+                      <br />
+                      <strong>Related skills you might need:</strong>{" "}
+                      {fullAiResult.graphInsights.recommendedSkills.join(", ")}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Based on a knowledge graph of real‑world skill
+                      relationships.
+                    </p>
+                  </div>
+                </details>
+              </div>
+            )}
           {/* Content to export */}
-          <div id="tailored-resume-content" className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg whitespace-pre-wrap font-mono text-sm max-h-96 overflow-auto text-gray-800 dark:text-gray-200">
+          <div
+            id="tailored-resume-content"
+            className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg whitespace-pre-wrap font-mono text-sm max-h-96 overflow-auto text-gray-800 dark:text-gray-200"
+          >
             {tailoredContent}
           </div>
 
