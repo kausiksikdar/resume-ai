@@ -73,10 +73,10 @@ Generate a personalised cover letter grounded in your actual resume content and 
 Get 10 technical and behavioural questions tailored to the specific role and your resume profile. Save question sets for later practice.
 
 ### Job Matcher
-Add job descriptions manually. The system embeds them (rate-limited to 10/day) and matches against your resume using vector similarity scores.
+Add job descriptions manually or fetch real‑time listings via the **JSearch API** (powered by Google for Jobs). The system embeds them (rate-limited to 10/day) and matches against your resume using vector similarity scores.
 
 ### Knowledge Graph Skill Recommendations
-A Neo4j graph stores skill relationships (e.g., `React → Redux`, `Node.js → Express`). When a job description mentions certain skills, the graph returns related skills that are not already present, providing data‑driven suggestions for career growth.
+A Neo4j graph stores skill relationships (e.g., `React → Redux`, `Node.js → Express`). When a job description mentions certain skills, the graph returns related skills that are not already present, providing data‑driven suggestions for career growth. Users can give 👍/👎 feedback, which dynamically adjusts the graph edge weights, creating a **self‑improving recommendation engine**.
 
 ### Application Tracker
 Log job applications (company, role, status, date, notes). Link each application to a tailored resume or cover letter. Update status as you progress (Saved → Applied → Interview → Offer → Rejected). All applications are stored and displayed in a dedicated dashboard, helping you organise your job search pipeline.
@@ -127,6 +127,9 @@ Per-user rate limiting on embedding endpoints (10 JD embeddings/day) prevents AP
 
 **Auth security**  
 Token blacklisting in Redis ensures that logout is immediate and stateless JWTs cannot be replayed after revocation.
+
+**Self‑improving recommendations**  
+User feedback (👍/👎) updates Neo4j edge weights, so the most helpful skill relationships naturally rise to the top over time.
 
 ---
 
@@ -222,8 +225,8 @@ Re-ranking retrieved chunks with cross-encoder
 
 Observability dashboard (job durations, queue depth, failure rates)
 
-Graph update via user feedback (e.g., “this skill recommendation was helpful”)
+Graph update via user feedback (e.g., “this skill recommendation was helpful”) (✅ done)
 
-External job API integration (Adzuna) to auto‑populate job matcher
+External job API integration (JSearch) to auto‑populate job matcher (✅ done)
 
 ---
