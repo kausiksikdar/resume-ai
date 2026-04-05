@@ -90,6 +90,9 @@ const skillRelations = [
   ['GraphQL', 'Node.js'],
   ['Elasticsearch', 'Backend Engineer'],
   ['Elasticsearch', 'Node.js'],
+  ['Perl', 'Regex'],
+  ['Perl', 'CGI'],
+  ['Perl', 'Unix Scripting'],
 ];
 
 async function seed() {

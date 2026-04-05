@@ -17,6 +17,32 @@ const getDriver = () => {
   return driver;
 };
 
+// Map lower‑case skill names to the exact case used in the graph
+const skillNameMap = {
+  'react': 'React',
+  'node.js': 'Node.js',
+  'express': 'Express',
+  'mongodb': 'MongoDB',
+  'docker': 'Docker',
+  'perl': 'Perl',
+  'python': 'Python',
+  'java': 'Java',
+  'javascript': 'JavaScript',
+  'typescript': 'TypeScript',
+  'next.js': 'Next.js',
+  'tailwind css': 'Tailwind CSS',
+  'redux': 'Redux',
+  'kubernetes': 'Kubernetes',
+  'aws': 'AWS',
+  'graphql': 'GraphQL',
+  // add more as needed
+};
+
+const normalizeSkill = (skill) => {
+  const lower = skill.toLowerCase();
+  return skillNameMap[lower] || skill; // fallback to original if not found
+};
+
 const getRelatedSkills = async (skillName, limit = 3) => {
   const driver = initDriver();
   const session = driver.session();
@@ -49,7 +75,6 @@ const updateSkillWeight = async (missingSkill, recommendedSkill, delta) => {
       { missingSkill, recommendedSkill, delta }
     );
     if (result.records.length === 0) {
-      // Edge doesn't exist – create it with a default weight
       await session.run(
         `MATCH (a:Skill {name: $missingSkill}), (b:Skill {name: $recommendedSkill})
          CREATE (a)-[:RELATED_TO {weight: 1.0}]->(b)`,
@@ -62,11 +87,19 @@ const updateSkillWeight = async (missingSkill, recommendedSkill, delta) => {
 };
 
 const getRecommendedSkillsFromMissing = async (missingSkills, limit = 5) => {
-  if (!missingSkills || missingSkills.length === 0) return [];
+  if (!missingSkills || missingSkills.length === 0) {
+    console.log('No missing skills provided');
+    return [];
+  }
 
+  console.log('Missing skills from AI:', missingSkills);
   const allRelated = new Set();
+
   for (const skill of missingSkills.slice(0, 3)) {
-    const related = await getRelatedSkills(skill);
+    const normalized = normalizeSkill(skill);
+    console.log(`Querying Neo4j for ${skill} → ${normalized}`);
+    const related = await getRelatedSkills(normalized);
+    console.log(`Related skills for ${normalized}:`, related);
     related.forEach(r => allRelated.add(r));
   }
 
@@ -75,6 +108,7 @@ const getRecommendedSkillsFromMissing = async (missingSkills, limit = 5) => {
     skill => !missingSet.has(skill.toLowerCase())
   );
 
+  console.log('Final recommended skills:', filtered);
   return filtered.slice(0, limit);
 };
 
