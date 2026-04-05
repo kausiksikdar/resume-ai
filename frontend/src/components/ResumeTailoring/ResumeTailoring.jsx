@@ -14,6 +14,7 @@ import {
   semanticSearch,
   generateTailoredResume,
   saveTailoredResume,
+  submitSkillFeedback,
 } from "../../services/api";
 import SearchResults from "../SemanticSearch/SearchResults";
 import { SkeletonSearchResult } from "../Common/Skeleton";
@@ -34,6 +35,8 @@ const ResumeTailoring = () => {
   const [saved, setSaved] = useState(false);
   const [customName, setCustomName] = useState("");
   const [description, setDescription] = useState("");
+  const [feedbackLoading, setFeedbackLoading] = useState({});
+  const [feedbackGiven, setFeedbackGiven] = useState({});
 
   // Restore from context on mount
   useEffect(() => {
@@ -42,10 +45,6 @@ const ResumeTailoring = () => {
       setFullAiResult(tailoredData.fullResult);
     }
   }, [tailoredData]);
-
-  useEffect(() => {
-    console.log("Tailored content state changed:", tailoredContent);
-  }, [tailoredContent]);
 
   const handleSearch = async () => {
     if (!jobDescription.trim()) {
@@ -92,7 +91,6 @@ const ResumeTailoring = () => {
       setFullAiResult(result);
       const tailoredText = result.tailoredResume || result;
       setTailoredContent(tailoredText);
-      // Save to context
       setTailoredData({ content: tailoredText, fullResult: result });
       toast.success("Tailored resume generated successfully!");
     } catch (error) {
@@ -130,7 +128,6 @@ const ResumeTailoring = () => {
         description: description.trim(),
       });
       setSaved(true);
-      // Clear context after successful save
       clearTailored();
       setTailoredContent(null);
       setFullAiResult(null);
@@ -143,6 +140,36 @@ const ResumeTailoring = () => {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFeedback = async (recommendedSkill, helpful) => {
+    if (!fullAiResult?.graphInsights?.missingSkills?.length) return;
+    const loadingKey = `${recommendedSkill}:${helpful ? "up" : "down"}`;
+    if (feedbackLoading[loadingKey]) return;
+
+    setFeedbackLoading((prev) => ({ ...prev, [loadingKey]: true }));
+    try {
+      await submitSkillFeedback({
+        missingSkill: fullAiResult.graphInsights.missingSkills[0],
+        recommendedSkill,
+        helpful,
+      });
+      setFeedbackGiven((prev) => ({ ...prev, [recommendedSkill]: true }));
+      toast.success(
+        helpful
+          ? "Thanks! This helps improve recommendations."
+          : "Feedback recorded.",
+      );
+    } catch (error) {
+      console.error("Feedback error:", error);
+      toast.error("Failed to submit feedback");
+    } finally {
+      setFeedbackLoading((prev) => {
+        const newState = { ...prev };
+        delete newState[loadingKey];
+        return newState;
+      });
     }
   };
 
@@ -171,7 +198,7 @@ const ResumeTailoring = () => {
 
   return (
     <div className="space-y-6">
-      {/* Job description card (unchanged) */}
+      {/* Job description card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -408,7 +435,7 @@ const ResumeTailoring = () => {
             </div>
           )}
 
-          {/* ========== Graph Insights Section (based on missing skills) ========== */}
+          {/* Graph Insights Section */}
           {fullAiResult?.graphInsights &&
             fullAiResult.graphInsights.recommendedSkills?.length > 0 && (
               <div className="mt-4 border-t pt-4">
@@ -421,19 +448,71 @@ const ResumeTailoring = () => {
                       <strong>Missing skills identified:</strong>{" "}
                       {fullAiResult.graphInsights.missingSkills?.join(", ") ||
                         "None"}
-                      <br />
-                      <strong>Related skills you might need:</strong>{" "}
-                      {fullAiResult.graphInsights.recommendedSkills.join(", ")}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <div className="mt-2">
+                      <strong className="text-gray-700 dark:text-gray-300">
+                        Related skills you might need:
+                      </strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        {fullAiResult.graphInsights.recommendedSkills.map(
+                          (skill) => (
+                            <li
+                              key={skill}
+                              className="text-gray-600 dark:text-gray-400 flex items-center justify-between"
+                            >
+                              <span>{skill}</span>
+                              {feedbackGiven[skill] ? (
+                                <span className="text-xs text-green-600 ml-4">
+                                  ✓ Feedback recorded
+                                </span>
+                              ) : (
+                                <div className="flex gap-2 ml-4">
+                                  <button
+                                    onClick={() => handleFeedback(skill, true)}
+                                    disabled={
+                                      feedbackLoading[`${skill}:up`] ||
+                                      feedbackLoading[`${skill}:down`]
+                                    }
+                                    className="text-xs text-green-600 hover:text-green-800 disabled:opacity-50"
+                                    title="Helpful"
+                                  >
+                                    {feedbackLoading[`${skill}:up`] ? (
+                                      <FaSpinner className="animate-spin" size={10} />
+                                    ) : (
+                                      "👍"
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => handleFeedback(skill, false)}
+                                    disabled={
+                                      feedbackLoading[`${skill}:up`] ||
+                                      feedbackLoading[`${skill}:down`]
+                                    }
+                                    className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
+                                    title="Not helpful"
+                                  >
+                                    {feedbackLoading[`${skill}:down`] ? (
+                                      <FaSpinner className="animate-spin" size={10} />
+                                    ) : (
+                                      "👎"
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
                       Based on a knowledge graph of real‑world skill
-                      relationships.
+                      relationships. Your feedback helps improve recommendations.
                     </p>
                   </div>
                 </details>
               </div>
             )}
-          {/* Content to export */}
+
           <div
             id="tailored-resume-content"
             className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg whitespace-pre-wrap font-mono text-sm max-h-96 overflow-auto text-gray-800 dark:text-gray-200"

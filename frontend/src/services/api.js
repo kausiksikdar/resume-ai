@@ -91,7 +91,7 @@ export const deleteResume = async (id) => {
 };
 
 // ==================== AI Routes ====================
-// Based on your aiRoutes: /ai/resume-tailor, /ai/cover-letter, /ai/interview, /ai/rejection
+// Based on your aiRoutes: /ai/resume-tailor, /ai/cover-letter, /ai/interview
 
 // Resume Tailoring
 export const generateTailoredResume = async (resumeId, jobDescriptionText) => {
@@ -168,6 +168,12 @@ export const getInterviewById = async (id) => {
 
 export const deleteInterview = async (id) => {
   const response = await api.delete(`/ai/interview/${id}`);
+  return response.data;
+};
+
+// Feedback
+export const submitSkillFeedback = async (data) => {
+  const response = await api.post('/feedback/skill', data);
   return response.data;
 };
 
