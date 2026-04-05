@@ -9,7 +9,8 @@ import {
   FaSpinner,
   FaFilePdf,
   FaFileWord,
-  FaEye
+  FaEye,
+  FaDownload
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -25,9 +26,10 @@ const ResumeUpload = () => {
   const [deleting, setDeleting] = useState(null);
   const [viewingResume, setViewingResume] = useState(null);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [fetchingResumeId, setFetchingResumeId] = useState(null); // NEW: tracks which resume is being fetched
 
   useEffect(() => {
-    loadUploadedResumes(true); // initial load with skeleton
+    loadUploadedResumes(true);
   }, []);
 
   const loadUploadedResumes = async (showSkeleton = false) => {
@@ -50,7 +52,8 @@ const ResumeUpload = () => {
   };
 
   const handleViewResume = async (resumeId) => {
-    setLoadingContent(true);
+    setFetchingResumeId(resumeId);   // Show spinner on the eye icon
+    setLoadingContent(true);         // Also show loader inside modal (optional)
     try {
       const resume = await getResumeById(resumeId);
       setViewingResume(resume);
@@ -58,6 +61,7 @@ const ResumeUpload = () => {
       console.error('Error fetching resume:', error);
       toast.error('Failed to load resume content');
     } finally {
+      setFetchingResumeId(null);
       setLoadingContent(false);
     }
   };
@@ -130,7 +134,6 @@ const ResumeUpload = () => {
         setUploadProgress(progress);
       });
       
-      // Optimistically add the new resume to the list
       const newResume = {
         _id: result.id || result._id,
         cloudinaryUrl: result.cloudinaryUrl,
@@ -138,12 +141,9 @@ const ResumeUpload = () => {
         originalFileName: result.originalFileName || file.name
       };
       setUploadedResumes(prev => [newResume, ...prev]);
-      
       setUploadedFile({ name: file.name, id: newResume._id, size: file.size });
       toast.success(`Resume "${file.name}" uploaded successfully!`);
-      
       setTimeout(() => setUploadedFile(null), 3000);
-      
     } catch (error) {
       console.error('Upload error:', error);
       toast.error(error.response?.data?.message || 'Failed to upload resume');
@@ -156,7 +156,6 @@ const ResumeUpload = () => {
   const handleDeleteResume = async (id, filename) => {
     if (!window.confirm(`Are you sure you want to delete "${filename}"?`)) return;
     
-    // Optimistically remove from UI
     const previousResumes = [...uploadedResumes];
     setUploadedResumes(prev => prev.filter(r => (r._id || r.id) !== id));
     setDeleting(id);
@@ -166,7 +165,6 @@ const ResumeUpload = () => {
       toast.success(`Resume deleted successfully`);
     } catch (error) {
       console.error('Delete error:', error);
-      // Rollback
       setUploadedResumes(previousResumes);
       toast.error('Failed to delete resume');
     } finally {
@@ -186,7 +184,7 @@ const ResumeUpload = () => {
 
   return (
     <div className="space-y-6">
-      {/* Upload Section (unchanged) */}
+      {/* Upload Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -305,6 +303,7 @@ const ResumeUpload = () => {
             {uploadedResumes.map((resume, index) => {
               const resumeId = resume._id;
               const filename = getFilenameFromUrl(resume.cloudinaryUrl);
+              const isFetching = fetchingResumeId === resumeId;
               
               return (
                 <motion.div
@@ -338,10 +337,19 @@ const ResumeUpload = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleViewResume(resumeId)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
+                        disabled={isFetching}
+                        className={`opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg disabled:opacity-50 ${
+                          isFetching
+                            ? 'text-gray-400 dark:text-gray-500'
+                            : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+                        }`}
                         title="View resume"
                       >
-                        <FaEye />
+                        {isFetching ? (
+                          <FaSpinner className="animate-spin" />
+                        ) : (
+                          <FaEye />
+                        )}
                       </button>
                       <button
                         onClick={() => handleDeleteResume(resumeId, filename)}
@@ -364,21 +372,114 @@ const ResumeUpload = () => {
         )}
       </motion.div>
 
-      {/* Resume View Modal (unchanged) */}
-      {viewingResume && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[80vh] flex flex-col"
-          >
-            {/* ... modal content (unchanged) ... */}
-          </motion.div>
-        </div>
-      )}
+      {/* Resume View Modal - FULL IMPLEMENTATION */}
+      <AnimatePresence>
+        {viewingResume && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[80vh] flex flex-col shadow-2xl"
+            >
+              {/* Modal Header */}
+              <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  {getFileIcon(viewingResume.cloudinaryUrl)}
+                  <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                    {viewingResume.originalFileName || getFilenameFromUrl(viewingResume.cloudinaryUrl)}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setViewingResume(null)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FaTimes size={20} />
+                </button>
+              </div>
 
-      {/* Instructions (unchanged) */}
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {loadingContent ? (
+                  <div className="flex justify-center items-center h-40">
+                    <FaSpinner className="animate-spin text-indigo-600 text-3xl" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Metadata Section */}
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                      <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Resume Details</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Uploaded:</span>{' '}
+                          <span className="text-gray-800 dark:text-gray-200">
+                            {viewingResume.createdAt ? new Date(viewingResume.createdAt).toLocaleString() : 'Unknown'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">File Type:</span>{' '}
+                          <span className="text-gray-800 dark:text-gray-200">
+                            {viewingResume.cloudinaryUrl?.includes('.pdf') ? 'PDF' : 
+                             viewingResume.cloudinaryUrl?.includes('.docx') ? 'DOCX' : 'Text'}
+                          </span>
+                        </div>
+                        {viewingResume.fileSize && (
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Size:</span>{' '}
+                            <span className="text-gray-800 dark:text-gray-200">
+                              {(viewingResume.fileSize / 1024).toFixed(2)} KB
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Extracted Text Content */}
+                    {viewingResume.extractedText ? (
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Extracted Text</h4>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap max-h-96 overflow-y-auto">
+                          {viewingResume.extractedText}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center text-yellow-700 dark:text-yellow-400">
+                        No text content extracted from this resume.
+                      </div>
+                    )}
+
+                    {/* Download / View Original Link */}
+                    {viewingResume.cloudinaryUrl && (
+                      <div className="text-center">
+                        <a
+                          href={viewingResume.cloudinaryUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                          <FaDownload /> Open original file
+                        </a>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex justify-end">
+                <button
+                  onClick={() => setViewingResume(null)}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Instructions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -390,7 +491,7 @@ const ResumeUpload = () => {
           <li>Upload your resume (PDF, DOCX, or TXT format, max 10MB)</li>
           <li>The system extracts text and creates embeddings for semantic search</li>
           <li>Your resume is stored in Cloudinary, MongoDB, and Qdrant</li>
-          <li>Click the 👁️ icon to view resume content and details</li>
+          <li>Click the 👁️ icon to view resume content and details (spinner appears while loading)</li>
           <li>Use the Semantic Search page to find matching resumes</li>
         </ul>
       </motion.div>
