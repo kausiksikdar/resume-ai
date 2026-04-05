@@ -14,7 +14,6 @@ const driver = neo4j.driver(
 );
 const session = driver.session();
 
-// Comprehensive skill relationships (bidirectional where appropriate)
 const skillRelations = [
   // Frontend stack
   ['HTML', 'CSS'],
@@ -86,7 +85,7 @@ const skillRelations = [
   ['Jest', 'Node.js'],
   ['Cypress', 'React'],
 
-  // Other relevant skills
+  // Other
   ['GraphQL', 'React'],
   ['GraphQL', 'Node.js'],
   ['Elasticsearch', 'Backend Engineer'],
@@ -110,22 +109,20 @@ async function seed() {
     }
     console.log(`✅ Created ${allSkills.size} skill nodes`);
 
-    // Create relationships (bidirectional? We'll keep directed but also add reverse if needed)
+    // Create bidirectional relationships with initial weight 1.0
     for (const [a, b] of skillRelations) {
       await session.run(
         `MATCH (a:Skill {name: $a}), (b:Skill {name: $b})
-         CREATE (a)-[:RELATED_TO]->(b)`,
+         CREATE (a)-[:RELATED_TO {weight: 1.0}]->(b)`,
         { a, b }
       );
-      // Optional: also create reverse edge for symmetric relationships
-      // (most skill relationships are symmetric, so we add both directions)
       await session.run(
         `MATCH (a:Skill {name: $a}), (b:Skill {name: $b})
-         CREATE (b)-[:RELATED_TO]->(a)`,
+         CREATE (b)-[:RELATED_TO {weight: 1.0}]->(a)`,
         { a, b }
       );
     }
-    console.log('✅ Created skill relationships (bidirectional)');
+    console.log('✅ Created skill relationships with weight=1.0 (bidirectional)');
   } catch (err) {
     console.error('❌ Seeding error:', err);
   } finally {

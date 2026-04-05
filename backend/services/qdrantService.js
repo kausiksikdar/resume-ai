@@ -1,7 +1,7 @@
 const qdrant = require("../config/qdrant");
 
 const COLLECTION_NAME = "resume_chunks";
-const VECTOR_SIZE = 768; // Google text-embedding-004 dimension
+const VECTOR_SIZE = 768; // Google gemini-embedding-2-preview dimension
 
 async function initQdrant() {
   try {

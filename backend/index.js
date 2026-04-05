@@ -24,6 +24,7 @@ app.use('/resume', require('./routes/resumeRoutes'));
 app.use('/ai', require('./routes/aiRoutes'));
 app.use('/jobs', require('./routes/jobRoutes'));
 app.use('/applications', require('./routes/applicationRoutes'));
+app.use('/feedback', require('./routes/feedbackRoutes'));
 
 const InitalizeConnection = async () => {
   try {
