@@ -31,7 +31,7 @@ const resumeTailoringSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
-    // ✅ New fields from AI analysis
+    // New fields from AI analysis
     matchScore: {
       type: Number,
       default: null

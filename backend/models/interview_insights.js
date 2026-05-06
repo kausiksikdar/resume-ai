@@ -34,7 +34,7 @@ const interviewSchema = new mongoose.Schema(
       }
     ],
 
-    // ✅ User‑friendly fields (same as tailored resumes & cover letters)
+    // User‑friendly fields (same as tailored resumes & cover letters)
     name: {
       type: String,
       default: function() {

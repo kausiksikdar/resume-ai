@@ -25,7 +25,7 @@ const coverLetterSchema = new mongoose.Schema(
       required: true
     },
 
-    // ✅ New fields (same as tailored resume)
+    // New fields (same as tailored resume)
     name: {
       type: String,
       default: function() {
