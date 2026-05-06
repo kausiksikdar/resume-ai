@@ -19,9 +19,9 @@ async function initQdrant() {
         }
       });
 
-      console.log("✅ Qdrant collection created");
+      console.log("Qdrant collection created");
 
-      // 🔥 Add payload indexes (VERY IMPORTANT)
+      // Add payload indexes (VERY IMPORTANT)
       await qdrant.createPayloadIndex(COLLECTION_NAME, {
         field_name: "userId",
         field_schema: "keyword"
@@ -36,14 +36,14 @@ async function initQdrant() {
         field_name: "type",
         field_schema: "keyword",
       });
-  console.log("✅ Created payload index for 'type'");
+  console.log("Created payload index for 'type'");
 
-      console.log("✅ Payload indexes created");
+      console.log("Payload indexes created");
     } else {
-      console.log("ℹ️ Qdrant collection already exists");
+      console.log("Qdrant collection already exists");
     }
   } catch (err) {
-    console.error("❌ Qdrant init error:", err.message);
+    console.error("Qdrant init error:", err.message);
   }
 }
 
