@@ -1,8 +1,8 @@
 const Redis = require('ioredis');
 
 const options = {
-  host: 'redis-12709.crce276.ap-south-1-3.ec2.cloud.redislabs.com',
-  port: 12709,
+  host: 'redis-11244.c14.us-east-1-3.ec2.cloud.redislabs.com',
+  port: 11244,
   password: process.env.REDIS_PASS,
   username: 'default',
 };
