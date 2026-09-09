@@ -23,6 +23,7 @@ import LandingPage from "./components/LandingPage/LandingPage";
 import ChangePassword from "./components/Auth/ChangePassword";
 import ApplicationTracker from "./components/ApplicationTracker/ApplicationTracker";
 
+
 function App() {
   return (
     <Router>
